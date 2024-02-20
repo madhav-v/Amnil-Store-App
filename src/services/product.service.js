@@ -1,3 +1,4 @@
+const CartModel = require("../models/cart.model");
 const ProductModel = require("../models/product.model");
 const Joi = require("joi");
 
@@ -10,7 +11,7 @@ class ProductService {
         detail: Joi.string(),
         price: Joi.number().min(1).required(),
         images: Joi.array().items(Joi.string()),
-        sellerId: Joi.string(),
+        store: Joi.string(),
         stock: Joi.number(),
       });
       let response = schema.validate(data);
@@ -99,6 +100,14 @@ class ProductService {
         .populate("sellerId")
         .sort({ _id: -1 });
       return response;
+    } catch (exception) {
+      throw exception;
+    }
+  };
+  addToCart = (data) => {
+    try {
+      let cart = new CartModel(data);
+      return cart.save();
     } catch (exception) {
       throw exception;
     }

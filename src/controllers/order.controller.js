@@ -1,25 +1,22 @@
 const prodSvc = require("../services/product.service");
-
+const OrderModel = require("../models/order.model");
+const CartModel = require("../models/cart.model");
 class OrderController {
   addToCart = async (req, res, next) => {
     try {
       let payload = req.body;
 
       let prodDetail = await prodSvc.getProductById(payload.productId);
-      let subtotal = prodDetail.afterDiscount * payload.qty;
-      let discount = payload.discount ?? 0;
-      console.log(prodDetail);
+      let subtotal = prodDetail.price * payload.qty;
       let cartobj = {
         buyer: req.authUser._id,
         product: payload.productId,
         qty: payload.qty,
-        price: prodDetail.afterDiscount,
+        price: prodDetail.price,
         subTotal: subtotal,
-        discount: discount ?? 0,
-        total: subtotal - discount,
         status: "pending",
       };
-      let response = await this.svc.addToCart(cartobj);
+      let response = await prodSvc.addToCart(cartobj);
       res.json({
         status: true,
         msg: "Product added in Cart",

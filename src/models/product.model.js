@@ -24,10 +24,10 @@ const ProductSchema = new mongoose.Schema(
     images: {
       type: Array,
     },
-    sellerId: {
+    store: {
       type: mongoose.Types.ObjectId,
       default: null,
-      ref: "User",
+      ref: "Store",
     },
   },
   {

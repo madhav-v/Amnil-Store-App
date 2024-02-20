@@ -8,7 +8,10 @@ class UserService {
         name: Joi.string().required(),
         email: Joi.string().email().required(),
         password: Joi.string().required(),
-        role: Joi.string().valid("admin", "seller", "customer").required(),
+        location: Joi.object({
+          type: Joi.string().required(),
+          coordinates: Joi.array().items(Joi.number()).required(),
+        }),
       });
       let response = schema.validate(data);
       if (response.error) {

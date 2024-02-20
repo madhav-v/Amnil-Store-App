@@ -27,7 +27,6 @@ const authCheck = async (req, res, next) => {
 
       let data = jwt.verify(token, process.env.JWT_SECRET);
       let user = await userSvc.getUserById(data.userId);
-      console.log("User", user);
       if (!user) {
         next({ status: 403, msg: "User does not exists." });
       }
