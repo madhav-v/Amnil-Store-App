@@ -73,7 +73,13 @@ class StoreService {
       throw exception;
     }
   };
-  
+  getAllStores = async () => {
+    try {
+      return await StoreModel.find();
+    } catch (exception) {
+      throw exception;
+    }
+  };
 }
 
 const storeSvc = new StoreService();

@@ -9,7 +9,9 @@ const uploadPath = (req, res, next) => {
 };
 router
   .route("/")
-  .post(authCheck, uploadPath, uploader.single("logo"), storeCtrl.createStore);
+  .post(authCheck, uploadPath, uploader.single("logo"), storeCtrl.createStore)
+  .get(authCheck, storeCtrl.getAllStores)
+router.route("/near").get(authCheck, storeCtrl.getNearByStores);
 router.post(
   "/addProducts",
   authCheck,

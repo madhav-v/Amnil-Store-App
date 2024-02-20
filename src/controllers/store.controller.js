@@ -1,5 +1,7 @@
 const storeSvc = require("../services/store.service");
 const prodSvc = require("../services/product.service");
+const StoreModel = require("../models/store.model");
+const UserModel = require("../models/user.model");
 
 class StoreController {
   createStore = async (req, res, next) => {
@@ -66,6 +68,48 @@ class StoreController {
       res.json({
         result: products,
         msg: "Products retrieved successfully.",
+        status: true,
+      });
+    } catch (exception) {
+      next(exception);
+    }
+  };
+  getAllStores = async (req, res, next) => {
+    try {
+      const stores = await storeSvc.getAllStores();
+      res.json({
+        result: stores,
+        msg: "Stores retrieved successfully.",
+        status: true,
+      });
+    } catch (exception) {
+      next(exception);
+    }
+  };
+  getNearByStores = async (req, res, next) => {
+    try {
+      const userId = req.authUser.id;
+
+      const maxDistance = 10000;
+
+      const user = await UserModel.findById(userId);
+      const userLocation = user.location;
+
+      const stores = await StoreModel.find({
+        location: {
+          $near: {
+            $geometry: {
+              type: "Point",
+              coordinates: userLocation.coordinates,
+            },
+            $maxDistance: maxDistance,
+          },
+        },
+      });
+
+      res.json({
+        result: stores,
+        msg: "Nearby stores retrieved successfully.",
         status: true,
       });
     } catch (exception) {
