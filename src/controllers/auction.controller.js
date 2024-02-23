@@ -4,7 +4,6 @@ class AuctionController {
   createAunctionProduct = async (req, res, next) => {
     try {
       let data = req.body;
-      console.log("Data", data);
       if (req.files) {
         data.images = req.files.map((item) => {
           return item.filename;
