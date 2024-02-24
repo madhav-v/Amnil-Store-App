@@ -1,78 +1,133 @@
-const AuctionProductModel = require("../models/auction.model");
+const Auction = require("../models/auction.model");
+const User = require("../models/user.model");
 
-class AuctionController {
-  createAunctionProduct = async (req, res, next) => {
-    try {
-      let data = req.body;
-      if (req.files) {
-        data.images = req.files.map((item) => {
-          return item.filename;
-        });
-      }
-      const { name, endTime, images } = data;
-      const newProduct = new AuctionProductModel({
-        name,
-        images,
-        endTime,
-      });
-      const savedProduct = await newProduct.save();
-      res.json({
-        result: savedProduct,
-        msg: "Auction product created successfully.",
-        status: true,
-      });
-    } catch (exception) {
-      next(exception);
+exports.addAuction = async (req, res) => {
+  try {
+    const currentTime = new Date();
+    const endDate = new Date(req.body.endDate);
+    const timeDiff = endDate - currentTime;
+    if (timeDiff < 0) {
+      throw "Invalid end time ";
     }
-  };
+    const auction = await Auction.create({
+      product_id: req.params.productId,
+      start_date: new Date(),
+      end_date: new Date(req.body.endDate),
+    });
+    res.json({
+      status: "success",
+      data: auction,
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: "fail",
+      msg: err,
+    });
+  }
+};
 
-  getActiveAuction = async (req, res, next) => {
-    try {
-      const currentTime = new Date();
-      const products = await AuctionProductModel.find({
-        endTime: { $gt: currentTime },
-        status: "active",
-      });
-      res.json({
-        result: products,
-        msg: "Auction products",
-        status: true,
-      });
-    } catch (exception) {
-      next(exception);
+exports.getAllAuctions = async (req, res) => {
+  try {
+    const auctions = await Auction.find();
+    res.json({
+      status: "success",
+      result: auctions.length,
+      data: auctions,
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: "fail",
+      msg: err,
+    });
+  }
+};
+
+exports.getAuctionById = async (req, res) => {
+  try {
+    const auctionId = req.params.id;
+    const auction = await Auction.findOne(auctionId);
+    res.json({
+      status: "success",
+      data: auction,
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: "fail",
+      msg: err,
+    });
+  }
+};
+
+exports.bidAuction = async (req, res) => {
+  try {
+    const user_id = req.authUser.id;
+    const { bid_amount } = req.body;
+
+    const user = await User.findById(user_id);
+    if (!user) {
+      throw "Invalid user";
     }
-  };
 
-  placeBid = async (req, res, next) => {
-    try {
-      let userId = req.authUser?.id;
-      let { auctionId, bidAmount } = req.body;
-      const auction = await AuctionProductModel.findById(auctionId);
-      if (auction.status !== "active") {
-        return res.json({
-          msg: "This product is not available for bidding.",
-          status: false,
-        });
-      }
-      const currentHighestBid =
-        auction.bidHistory.length > 0
-          ? auction.bidHistory[0].bidAmount
-          : auction.price;
-      if (bidAmount <= currentHighestBid) {
-        return res.status(400).json({
-          message: "Your bid must be higher than the current highest bid.",
-        });
-      }
+    const auction = await Auction.findByIdAndUpdate(
+      req.params.auctionId,
+      { $push: { bidder: { user_id, bid_amount } } },
+      { new: true }
+    );
+    res.json({
+      status: "success",
+      data: auction,
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: "fail",
+      msg: err,
+    });
+  }
+};
 
-      auction.bidHistory.unshift({ bidder: userId, bidAmount });
-      await auction.save();
+exports.getBidders = async (req, res) => {
+  try {
+    const auctionId = req.params.auctionId;
+    const bidderList = await Auction.findById(auctionId).select("bidder -_id ");
+    res.json({
+      status: "success",
+      data: bidderList,
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: "fail",
+      msg: err,
+    });
+  }
+};
 
-      res.json({ message: "Bid placed successfully." });
-    } catch (exception) {
-      next(exception);
-    }
-  };
-}
+exports.decideAuctionWinner = async (req, res) => {
+  try {
+    const auctionId = req.params.auctionId;
+    const bidderList = await Auction.findById(auctionId).select("bidder -_id ");
+    //calculating winner
+    const winner = bidderList.bidder.reduce((acc, curr) => {
+      if (curr.bid_amount > acc.bid_amount) acc = curr;
+      return acc;
+    });
 
-const auctionCtrl = new AuctionController();
-module.exports = auctionCtrl;
+    //updating auction for winner
+    const updatedAuction = await Auction.findByIdAndUpdate(
+      auctionId,
+      {
+        auction_winner_id: winner.user_id,
+        auction_bid_final_amount: winner.bid_amount,
+      },
+      { new: true }
+    );
+    res.json({
+      status: "success",
+      data: updatedAuction,
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: "fail",
+      msg: err,
+    });
+  }
+};

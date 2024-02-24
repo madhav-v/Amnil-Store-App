@@ -66,7 +66,7 @@ class ProductService {
 
   getProductById = async (id) => {
     try {
-      let product = await ProductModel.findById(id).populate("sellerId");
+      let product = await ProductModel.findById(id).populate();
       if (product) {
         return product;
       } else {

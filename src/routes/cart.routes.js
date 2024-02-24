@@ -1,10 +1,11 @@
-const router = require("express").Router();
-const orderCtrl = require("../controllers/order.controller");
-const authCheck = require("../middleware/auth.middleware");
+const express = require("express");
+const cartController = require("../controllers/cart.controller");
 
-router.route("/").post(authCheck, orderCtrl.addToCart);
-router.get("/list-all", authCheck, orderCtrl.listAll);
-router.post("/detail", authCheck, orderCtrl.getCartDetail);
-router.post("/setCart", authCheck, orderCtrl.placeOrder);
+const router = express.Router();
+
+
+router.route("/").get(cartController.getAllCarts);
+router.route("/:userId").get(cartController.getUserCart);
+router.route("/:userId/addToCart").post(cartController.addToCart);
 
 module.exports = router;

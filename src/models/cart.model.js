@@ -1,42 +1,34 @@
 const mongoose = require("mongoose");
 
-const CartSchema = new mongoose.Schema(
-  {
-    buyer: {
-      type: mongoose.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    product: {
-      type: mongoose.Types.ObjectId,
-      ref: "Product",
-      required: true,
-    },
-    qty: {
-      type: Number,
-      required: true,
-    },
-    price: {
-      type: Number,
-      required: true,
-    },
-
-    subTotal: {
-      type: Number,
-      required: true,
-    },
-    status: {
-      type: String,
-      enum: ["pending", "paid", "cancelled", "verified"],
-      default: "pending",
-    },
+const cartItemSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
   },
-  {
-    timestamps: true,
-    autoCreate: true,
-    autoIndex: true,
-  }
-);
+  price: {
+    type: Number,
+    required: true,
+  },
+  quantity: {
+    type: Number,
+    required: true,
+  },
+});
 
-const CartModel = mongoose.model("Cart", CartSchema);
-module.exports = CartModel;
+const cartSchema = new mongoose.Schema({
+  userId: {
+    type: String,
+    required: [true, "User id is required"],
+  },
+  cart: {
+    type: [cartItemSchema],
+    required: [true, "User must have an email"],
+  },
+  total: {
+    type: Number,
+  },
+});
+
+const Cart = mongoose.model("Cart", cartSchema);
+
+module.exports = Cart;

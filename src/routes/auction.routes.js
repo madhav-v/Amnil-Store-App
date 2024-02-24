@@ -1,21 +1,20 @@
-const auctionCtrl = require("../controllers/auction.controller");
+const express = require("express");
+const auctionController = require("../controllers/auction.controller");
 const authCheck = require("../middleware/auth.middleware");
-const uploader = require("../middleware/uploader.middleware");
-const router = require("express").Router();
-const uploadPath = (req, res, next) => {
-  req.uploadPath = "./public/auction/";
-  next();
-};
+
+const router = express.Router();
+
+router.route("/").get(auctionController.getAllAuctions);
+
+router.route("/:aId").get(auctionController.getAuctionById);
+
+router.route("/:pId").post(auctionController.addAuction);
 
 router
-  .route("/")
-  .post(
-    authCheck,
-    uploadPath,
-    uploader.array("images"),
-    auctionCtrl.createAunctionProduct
-  );
-router.get("/", authCheck, auctionCtrl.getActiveAuction);
-router.post("/bid", authCheck, auctionCtrl.placeBid);
+  .route("/bid/:aId")
+  .get(auctionController.getBidders)
+  .post(authCheck, auctionController.bidAuction);
+
+router.route("/calculate/:aId").get(auctionController.decideAuctionWinner);
 
 module.exports = router;
