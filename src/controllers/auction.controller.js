@@ -1,22 +1,25 @@
 const Auction = require("../models/auction.model");
 const User = require("../models/user.model");
-
+const pool = require("../config/mongoose.config");
 exports.addAuction = async (req, res) => {
   try {
+    const product_id = req.params.pId;
     const currentTime = new Date();
     const endDate = new Date(req.body.endDate);
     const timeDiff = endDate - currentTime;
     if (timeDiff < 0) {
       throw "Invalid end time ";
     }
-    const auction = await Auction.create({
-      product_id: req.params.productId,
-      start_date: new Date(),
-      end_date: new Date(req.body.endDate),
-    });
+    const query = `
+      INSERT INTO auction (product_id, start_date, end_date)
+      VALUES ($1, $2, $3)
+      RETURNING *;
+    `;
+    const values = [product_id, new Date(), new Date(req.body.endDate)];
+    const { rows } = await pool.query(query, values);
     res.json({
       status: "success",
-      data: auction,
+      data: rows[0],
     });
   } catch (err) {
     res.status(400).json({
@@ -28,11 +31,14 @@ exports.addAuction = async (req, res) => {
 
 exports.getAllAuctions = async (req, res) => {
   try {
-    const auctions = await Auction.find();
+    const query = `
+      SELECT * FROM auction;
+    `;
+    const { rows } = await pool.query(query);
     res.json({
       status: "success",
-      result: auctions.length,
-      data: auctions,
+      result: rows.length,
+      data: rows,
     });
   } catch (err) {
     res.status(400).json({
@@ -45,10 +51,14 @@ exports.getAllAuctions = async (req, res) => {
 exports.getAuctionById = async (req, res) => {
   try {
     const auctionId = req.params.id;
-    const auction = await Auction.findOne(auctionId);
+    const query = `
+      SELECT * FROM auction WHERE id = $1;
+    `;
+    const values = [auctionId];
+    const { rows } = await pool.query(query, values);
     res.json({
       status: "success",
-      data: auction,
+      data: rows[0],
     });
   } catch (err) {
     res.status(400).json({
@@ -63,19 +73,30 @@ exports.bidAuction = async (req, res) => {
     const user_id = req.authUser.id;
     const { bid_amount } = req.body;
 
-    const user = await User.findById(user_id);
+    const userQuery = `
+    SELECT * FROM users
+    WHERE id = $1;
+  `;
+    const userValues = [user_id];
+    const userResult = await pool.query(userQuery, userValues);
+    const user = userResult.rows[0];
+
     if (!user) {
       throw "Invalid user";
     }
 
-    const auction = await Auction.findByIdAndUpdate(
-      req.params.auctionId,
-      { $push: { bidder: { user_id, bid_amount } } },
-      { new: true }
-    );
+    const auctionId = req.params.aId;
+    const query = `
+    UPDATE auction
+    SET bidder = COALESCE(bidder, '[]'::jsonb) || $1
+    WHERE id = $2
+    RETURNING *;
+  `;
+    const values = [{ user_id, bid_amount }, auctionId];
+    const { rows } = await pool.query(query, values);
     res.json({
       status: "success",
-      data: auction,
+      data: rows[0],
     });
   } catch (err) {
     res.status(400).json({
@@ -87,11 +108,15 @@ exports.bidAuction = async (req, res) => {
 
 exports.getBidders = async (req, res) => {
   try {
-    const auctionId = req.params.auctionId;
-    const bidderList = await Auction.findById(auctionId).select("bidder -_id ");
+    const auctionId = req.params.aId;
+    const query = `
+      SELECT bidder FROM auction WHERE id = $1;
+    `;
+    const values = [auctionId];
+    const { rows } = await pool.query(query, values);
     res.json({
       status: "success",
-      data: bidderList,
+      data: rows[0],
     });
   } catch (err) {
     res.status(400).json({
@@ -103,26 +128,30 @@ exports.getBidders = async (req, res) => {
 
 exports.decideAuctionWinner = async (req, res) => {
   try {
-    const auctionId = req.params.auctionId;
-    const bidderList = await Auction.findById(auctionId).select("bidder -_id ");
-    //calculating winner
-    const winner = bidderList.bidder.reduce((acc, curr) => {
+    const auctionId = req.params.aId;
+    const query = `
+      SELECT bidder FROM auction WHERE id = $1;
+    `;
+    const values = [auctionId];
+    const { rows } = await pool.query(query, values);
+
+    const winner = rows[0].bidder.reduce((acc, curr) => {
       if (curr.bid_amount > acc.bid_amount) acc = curr;
       return acc;
     });
 
-    //updating auction for winner
-    const updatedAuction = await Auction.findByIdAndUpdate(
-      auctionId,
-      {
-        auction_winner_id: winner.user_id,
-        auction_bid_final_amount: winner.bid_amount,
-      },
-      { new: true }
-    );
+    const updateQuery = `
+      UPDATE auction
+      SET auction_winner_id = $1, auction_bid_final_amount = $2
+      WHERE id = $3
+      RETURNING *;
+    `;
+    const updateValues = [winner.user_id, winner.bid_amount, auctionId];
+    const { rows: updatedRows } = await pool.query(updateQuery, updateValues);
+
     res.json({
       status: "success",
-      data: updatedAuction,
+      data: updatedRows[0],
     });
   } catch (err) {
     res.status(400).json({
