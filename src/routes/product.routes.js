@@ -1,7 +1,6 @@
 const router = require("express").Router();
 const productCtrl = require("../controllers/product.controller");
 const authCheck = require("../middleware/auth.middleware");
-const { checkPermission } = require("../middleware/permission.middleware");
 const uploader = require("../middleware/uploader.middleware");
 
 const uploadPath = (req, res, next) => {

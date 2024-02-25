@@ -2,6 +2,7 @@ const Joi = require("joi");
 const StoreModel = require("../models/store.model");
 const ProductModel = require("../models/product.model");
 const prodSvc = require("./product.service");
+const pool = require("../config/mongoose.config");
 
 class StoreService {
   storeValidate = async (data) => {
@@ -11,10 +12,8 @@ class StoreService {
         type: Joi.string(),
         user: Joi.string().required(),
         logo: Joi.string().required(),
-        location: Joi.object({
-          type: Joi.string().required(),
-          coordinates: Joi.array().items(Joi.number()).required(),
-        }),
+        location_type: Joi.string().required(),
+        coordinates: Joi.array().items(Joi.number()).required(),
       });
       let response = schema.validate(data);
       if (response.error) {
@@ -28,56 +27,85 @@ class StoreService {
     }
   };
   createScore = async (data) => {
+    const client = await pool.connect();
     try {
-      let store = new StoreModel(data);
-      return await store.save();
-    } catch (exception) {
-      throw exception;
+      const query = `
+        INSERT INTO store (name, type, user_id, logo, location_type, coordinates)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING *;
+      `;
+      const { name, type, user, logo, location_type, coordinates } = data;
+      const values = [name, type, user, logo, location_type, coordinates];
+      const result = await client.query(query, values);
+      return result.rows[0];
+    } finally {
+      client.release();
     }
   };
   updateStore = async (id, data) => {
+    const client = await pool.connect();
     try {
-      if (
-        data.location &&
-        data.location.coordinates &&
-        Array.isArray(data.location.coordinates)
-      ) {
-        data.location.coordinates = data.location.coordinates.map((coord) =>
-          parseFloat(coord)
-        );
-      }
-      let storeDetail = await StoreModel.findByIdAndUpdate(id, { $set: data });
-      return storeDetail;
-    } catch (err) {
-      throw err;
+      const query = `
+        UPDATE store 
+        SET name = $1, type = $2, logo = $3, location_type = $4, coordinates = $5
+        WHERE id = $6
+        RETURNING *;
+      `;
+      const { name, type, logo, location_type, coordinates } = data;
+      const values = [name, type, logo, location_type, coordinates, id];
+      const result = await client.query(query, values);
+      return result.rows[0];
+    } finally {
+      client.release();
     }
   };
   listAllProductsOfStore = async (id) => {
+    const client = await pool.connect();
     try {
-      const store = await StoreModel.findById(id).populate("products");
-      return store;
-    } catch (exception) {
-      throw exception;
+      const query = `
+        SELECT * FROM store WHERE id = $1;
+      `;
+      const result = await client.query(query, [id]);
+      return result.rows[0];
+    } finally {
+      client.release();
     }
   };
   addProductToStore = async (id, data) => {
+    const client = await pool.connect();
     try {
-      let store = await StoreModel.findById(id);
-      if (!store) {
-        throw { status: 404, msg: "Store not found" };
-      }
-      const product = await prodSvc.createProduct(data);
-      store.products.push(product._id);
-      await store.save();
-    } catch (exception) {
-      throw exception;
+      const { name, categories, detail, price, stock, images } = data;
+      const query = `
+        INSERT INTO products (name, categories, detail, price, stock, images, store_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING *;
+      `;
+      const values = [name, categories, detail, price, stock, images, id];
+      const result = await client.query(query, values);
+      const product = result.rows[0];
+
+      const updateQuery = `
+        UPDATE store 
+        SET products = array_append(products, $1)
+        WHERE id = $2;
+      `;
+      await client.query(updateQuery, [product.id, id]);
+
+      return product;
+    } finally {
+      client.release();
     }
   };
   getAllStores = async () => {
+    const client = await pool.connect();
     try {
-      return await StoreModel.find();
-    } catch (exception) {
-      throw exception;
+      const query = `
+        SELECT * FROM store;
+      `;
+      const result = await client.query(query);
+      return result.rows;
+    } finally {
+      client.release();
     }
   };
 }

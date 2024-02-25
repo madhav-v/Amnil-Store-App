@@ -1,20 +1,36 @@
 const prodSvc = require("../services/product.service");
+const pool = require("../config/mongoose.config");
 
 class ProductController {
   createProduct = async (req, res, next) => {
     try {
       const id = req.authUser?.id;
       let data = req.body;
-      data.sellerId = id;
+      console.log(data);
+      // data.sellerId = id;
       if (req.files) {
         data.images = req.files.map((item) => {
           return item.filename;
         });
       }
       let validated = await prodSvc.productValidate(data);
-      let response = await prodSvc.createProduct(validated);
+      const query = `
+      INSERT INTO products (name, categories, detail, price, images, stock, store_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *`;
+      const values = [
+        validated.name,
+        validated.categories,
+        validated.detail,
+        validated.price,
+        validated.images,
+        validated.stock,
+        validated.store_id,
+      ];
+      const { rows } = await pool.query(query, values);
+
       res.json({
-        result: response,
+        result: rows[0],
         msg: "Product created successfully",
         status: true,
         meta: null,

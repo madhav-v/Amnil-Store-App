@@ -1,6 +1,6 @@
 const UserModel = require("../models/user.model");
 const Joi = require("joi");
-
+const pool = require("../config/mongoose.config");
 class UserService {
   validatedata = async (data) => {
     try {
@@ -26,33 +26,41 @@ class UserService {
   };
   registerUser = async (data) => {
     try {
-      let user = new UserModel(data);
-      return await user.save();
-    } catch (exception) {
-      throw exception;
+      const query = `
+        INSERT INTO users (name, email, password, location_type, coordinates)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING *
+      `;
+      const values = [
+        data.name,
+        data.email,
+        data.password,
+        data.location.type,
+        data.location.coordinates,
+      ];
+      const result = await pool.query(query, values);
+      return result.rows[0];
+    } catch (error) {
+      throw error;
     }
   };
   getUserByEmail = async (email) => {
     try {
-      let user = await UserModel.findOne({
-        email: email,
-      });
-      if (user) {
-        return user;
-      } else {
-        throw "User does not exists";
-      }
-    } catch (except) {
-      throw except;
+      const query = "SELECT * FROM users WHERE email = $1";
+      const result = await pool.query(query, [email]);
+      return result.rows[0];
+    } catch (error) {
+      throw error;
     }
   };
 
   getUserById = async (id) => {
     try {
-      let userDetail = await UserModel.findById(id);
-      return userDetail;
-    } catch (err) {
-      throw err;
+      const query = "SELECT * FROM users WHERE id = $1";
+      const result = await pool.query(query, [id]);
+      return result.rows[0];
+    } catch (error) {
+      throw error;
     }
   };
 }

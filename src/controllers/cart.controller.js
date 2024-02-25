@@ -1,17 +1,20 @@
 const Cart = require("./../models/cart.model");
-
+const pool = require("../config/mongoose.config");
 exports.getAllCarts = async (req, res) => {
   try {
-    const carts = await Cart.find();
+    const query = `
+      SELECT * FROM cart;
+    `;
+    const { rows } = await pool.query(query);
     res.json({
       status: "success",
-      result: carts.length,
-      data: carts,
+      result: rows.length,
+      data: rows,
     });
   } catch (err) {
     res.status(400).json({
       status: "fail",
-      msg: err,
+      msg: err.message,
     });
   }
 };
@@ -19,30 +22,26 @@ exports.getAllCarts = async (req, res) => {
 exports.addToCart = async (req, res) => {
   try {
     const userId = req.params.userId;
-
-    userCart = await Cart.findOne({ userId });
-    let cart;
-    if (!userCart || userCart.length === 0) {
-      cart = await Cart.create({
-        userId,
-        cart: [req.body],
-        total: req.body.price * req.body.quantity,
-      });
-    } else {
-      userCart.cart.push(req.body);
-      userCart.total += req.body.price * req.body.quantity;
-      cart = await userCart.save();
-    }
-
+    const cartItem = JSON.stringify(req.body);
+    const totalPrice = req.body.price * req.body.quantity;
+    const query = `
+    INSERT INTO cart (user_id, cart_items, total)
+    VALUES ($1, $2, $3)
+    ON CONFLICT (user_id) DO UPDATE
+    SET cart_items = cart.cart_items || $2, total = cart.total + $3
+    RETURNING *;
+    `;
+    const values = [userId, cartItem, totalPrice];
+    const { rows } = await pool.query(query, values);
     res.status(201).json({
       status: "success",
       msg: "Added to cart",
-      data: cart,
+      data: rows[0],
     });
   } catch (err) {
     res.status(400).json({
       status: "fail",
-      msg: err,
+      msg: err.message,
     });
   }
 };
@@ -50,16 +49,19 @@ exports.addToCart = async (req, res) => {
 exports.getUserCart = async (req, res) => {
   try {
     const userId = req.params.userId;
-    const userCart = await Cart.find({ userId });
+    const query = `
+      SELECT * FROM cart WHERE user_id = $1;
+    `;
+    const { rows } = await pool.query(query, [userId]);
     res.status(200).json({
       status: "success",
-      result: userCart.length,
-      cart: userCart,
+      result: rows.length,
+      cart: rows,
     });
   } catch (err) {
     res.status(400).json({
       status: "fail",
-      msg: err,
+      msg: err.message,
     });
   }
 };

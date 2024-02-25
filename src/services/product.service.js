@@ -1,6 +1,7 @@
 const CartModel = require("../models/cart.model");
 const ProductModel = require("../models/product.model");
 const Joi = require("joi");
+const pool = require("../config/mongoose.config");
 
 class ProductService {
   productValidate = async (data) => {
@@ -11,7 +12,7 @@ class ProductService {
         detail: Joi.string(),
         price: Joi.number().min(1).required(),
         images: Joi.array().items(Joi.string()),
-        store: Joi.string(),
+        store_id: Joi.string(),
         stock: Joi.number(),
       });
       let response = schema.validate(data);
@@ -28,10 +29,9 @@ class ProductService {
 
   getAllProducts = async () => {
     try {
-      let data = await ProductModel.find()
-        .populate("sellerId")
-        .sort({ _id: -1 });
-      return data;
+      const query = "SELECT * FROM products ORDER BY id DESC";
+      const { rows } = await pool.query(query);
+      return rows;
     } catch (exception) {
       console.log(exception);
       throw { status: 500, msg: "Query execution failed." };
@@ -39,7 +39,15 @@ class ProductService {
   };
 
   getAllCount = async (filter = {}) => {
-    return await ProductModel.count(filter);
+    try {
+      const query = `SELECT COUNT(*) FROM products WHERE ${this.generateFilterConditions(
+        filter
+      )}`;
+      const { rows } = await pool.query(query);
+      return parseInt(rows[0].count);
+    } catch (error) {
+      throw error;
+    }
   };
 
   createProduct = async (data) => {
@@ -57,53 +65,75 @@ class ProductService {
 
   updateProduct = async (data, id) => {
     try {
-      let response = await ProductModel.findByIdAndUpdate(id, { $set: data });
-      return response;
-    } catch (except) {
-      throw except;
+      const query = `
+        UPDATE products
+        SET name = $1, categories = $2, detail = $3, price = $4, images = $5, stock = $6
+        WHERE id = $7`;
+      const values = [
+        data.name,
+        data.categories,
+        data.detail,
+        data.price,
+        data.images,
+        data.stock,
+        id,
+      ];
+      await pool.query(query, values);
+      return { success: true };
+    } catch (error) {
+      throw error;
     }
   };
 
   getProductById = async (id) => {
     try {
-      let product = await ProductModel.findById(id).populate();
-      if (product) {
-        return product;
-      } else {
-        throw { status: 404, msg: "Product does not exists" };
-      }
-    } catch (err) {
-      console.log(err);
-      throw err;
+      const query = `SELECT * FROM products WHERE id = $1`;
+      const { rows } = await pool.query(query, [id]);
+      return rows[0];
+    } catch (error) {
+      throw error;
     }
   };
 
   deleteProductById = async (id) => {
     try {
-      let delResponse = await ProductModel.findByIdAndDelete(id);
-      if (delResponse) {
-        return delResponse;
-      } else {
-        throw {
-          status: 404,
-          msg: "Product has been already deleted or does not exists",
-        };
-      }
-    } catch (except) {
-      throw except;
+      const query = `DELETE FROM products WHERE id = $1`;
+      await pool.query(query, [id]);
+      return { success: true };
+    } catch (error) {
+      throw error;
     }
   };
 
   getProductByFilter = async (filter) => {
     try {
-      let response = await ProductModel.find(filter)
-        .populate("sellerId")
-        .sort({ _id: -1 });
-      return response;
-    } catch (exception) {
-      throw exception;
+      const query = `
+        SELECT *
+        FROM products
+        WHERE ${this.generateFilterConditions(filter)}
+        ORDER BY id DESC`;
+      const { rows } = await pool.query(query);
+      return rows;
+    } catch (error) {
+      throw error;
     }
   };
+  generateFilterConditions(filter) {
+    let conditions = [];
+
+    if (filter.$or && Array.isArray(filter.$or)) {
+      filter.$or.forEach((condition) => {
+        for (const key in condition) {
+          if (key === "name" || key === "detail") {
+            conditions.push(`${key} ILIKE '%${condition[key]}%'`);
+          }
+        }
+      });
+    }
+
+    return conditions.join(" OR ");
+  }
+
   addToCart = (data) => {
     try {
       let cart = new CartModel(data);

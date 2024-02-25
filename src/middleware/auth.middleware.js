@@ -12,29 +12,27 @@ const authCheck = async (req, res, next) => {
     if (req.headers["x-xsrf-token"]) {
       token = req.headers["x-xsrf-token"];
     }
-
     if (req.query["token"]) {
       token = req.query["token"];
     }
     if (!token || token === "" || token === null) {
-      next({ status: 401, msg: "Please login first!!" });
+      next({ status: 401, msg: "Please Login First" });
     } else {
-      // token => ["token"]
       token = token.split(" ").pop();
       if (!token) {
         next({ status: 401, msg: "Token not set" });
       }
-
       let data = jwt.verify(token, process.env.JWT_SECRET);
       let user = await userSvc.getUserById(data.userId);
-      if (!user) {
-        next({ status: 403, msg: "User does not exists." });
+      if (user) {
+        req.authUser = user;
+        next();
+      } else {
+        next({ status: 401, msg: "Invalid Token" });
       }
-      req.authUser = user;
-      next();
     }
   } catch (exception) {
-    next({ status: 401, msg: exception?.message });
+    next(exception);
   }
 };
 

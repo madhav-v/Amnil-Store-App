@@ -13,43 +13,42 @@ class AuthController {
         next({ status: 400, msg: "Credentials required" });
       }
       let userDetail = await userSvc.getUserByEmail(payload.email);
-
-      if (bcrypt.compareSync(payload.password, userDetail.password)) {
-        let accessToekn = jwt.sign(
-          {
-            userId: userDetail._id,
-          },
-          process.env.JWT_SECRET,
-          {
-            expiresIn: "3h",
-          }
-        );
-
-        let refreshToken = jwt.sign(
-          {
-            userId: userDetail._id,
-          },
-          process.env.JWT_SECRET,
-          {
-            expiresIn: "5d",
-          }
-        );
-
-        res.json({
-          result: {
-            data: userDetail,
-            token: {
-              accessToken: accessToekn,
-              accessType: "Bearer",
-              refreshToken: refreshToken,
-            },
-          },
-          status: true,
-          msg: "You are logged in",
-        });
-      } else {
-        next({ status: 403, msg: "Your account has not been activated yet" });
+      if (!userDetail) {
+        return res.status(403).json({ msg: "User not found" });
       }
+      const passwordMatch = bcrypt.compareSync(
+        payload.password,
+        userDetail.password
+      );
+      if (!passwordMatch) {
+        return res.status(403).json({ msg: "Incorrect password" });
+      }
+
+      // Generate JWT tokens
+      const accessToken = jwt.sign(
+        { userId: userDetail.id },
+        process.env.JWT_SECRET,
+        { expiresIn: "3h" }
+      );
+      const refreshToken = jwt.sign(
+        { userId: userDetail.id },
+        process.env.JWT_SECRET,
+        { expiresIn: "5d" }
+      );
+
+      // Send response with user details and tokens
+      res.json({
+        result: {
+          data: userDetail,
+          token: {
+            accessToken: accessToken,
+            accessType: "Bearer",
+            refreshToken: refreshToken,
+          },
+        },
+        status: true,
+        msg: "You are logged in",
+      });
     } catch (exception) {
       console.log(exception);
       next({ status: 400, msg: "Query Exception. View console" });
@@ -61,7 +60,6 @@ class AuthController {
       let registerData = req.body;
       userSvc.validatedata(registerData);
       registerData.password = bcrypt.hashSync(registerData.password, 10);
-      registerData.activationToken = helpers.generateRandomString();
 
       await userSvc.registerUser(registerData);
 

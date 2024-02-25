@@ -2,12 +2,14 @@ const storeSvc = require("../services/store.service");
 const prodSvc = require("../services/product.service");
 const StoreModel = require("../models/store.model");
 const UserModel = require("../models/user.model");
+const pool = require("../config/mongoose.config");
 
 class StoreController {
   createStore = async (req, res, next) => {
     try {
       let data = req.body;
-      let userId = req.authUser?.id;
+      let userId = req.authUser?.id.toString();
+      console.log(userId);
       if (req.file) {
         data.logo = req.file.filename;
       }
@@ -20,6 +22,7 @@ class StoreController {
         status: true,
       });
     } catch (exception) {
+      console.log("err");
       next(exception);
     }
   };
@@ -27,6 +30,7 @@ class StoreController {
   addProductToStore = async (req, res, next) => {
     try {
       let data = req.body;
+      console.log("Data", data);
       if (req.files) {
         data.images = req.files.map((item) => {
           return item.filename;
@@ -89,26 +93,29 @@ class StoreController {
   getNearByStores = async (req, res, next) => {
     try {
       const userId = req.authUser.id;
-
       const maxDistance = 10000;
 
-      const user = await UserModel.findById(userId);
-      const userLocation = user.location;
+      const userQuery = "SELECT coordinates FROM users WHERE id = $1";
+      const userResult = await pool.query(userQuery, [userId]);
+      const userLocation = userResult.rows[0].coordinates;
 
-      const stores = await StoreModel.find({
-        location: {
-          $near: {
-            $geometry: {
-              type: "Point",
-              coordinates: userLocation.coordinates,
-            },
-            $maxDistance: maxDistance,
-          },
-        },
-      });
+      const storesQuery = `
+      SELECT *
+      FROM store
+      WHERE
+        sqrt(
+          pow(coordinates[0] - $1, 2) +
+          pow(coordinates[1] - $2, 2)
+        ) * 111000 <= $3
+    `;
+      const storesResult = await pool.query(storesQuery, [
+        userLocation[0],
+        userLocation[1],
+        maxDistance,
+      ]);
 
       res.json({
-        result: stores,
+        result: storesResult.rows,
         msg: "Nearby stores retrieved successfully.",
         status: true,
       });
