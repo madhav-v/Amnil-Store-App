@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 const userSvc = require("../services/user.service");
 const helpers = require("../utilities/helpers");
 const jwt = require("jsonwebtoken");
-
+const logger = require("../config/logger.config");
 class AuthController {
   login = async (req, res, next) => {
     try {
@@ -35,8 +35,8 @@ class AuthController {
         process.env.JWT_SECRET,
         { expiresIn: "5d" }
       );
+      logger.info(`User logged in successfully: ${userDetail.email}`);
 
-      // Send response with user details and tokens
       res.json({
         result: {
           data: userDetail,
@@ -62,7 +62,7 @@ class AuthController {
       registerData.password = bcrypt.hashSync(registerData.password, 10);
 
       await userSvc.registerUser(registerData);
-
+      logger.info(`User registered successfully: ${registerData.email}`);
       res.json({
         result: registerData,
         msg: "User registered successfully.",

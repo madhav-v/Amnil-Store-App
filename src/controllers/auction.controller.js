@@ -1,6 +1,8 @@
 const Auction = require("../models/auction.model");
 const User = require("../models/user.model");
 const pool = require("../config/mongoose.config");
+const logger = require("../config/logger.config");
+
 exports.addAuction = async (req, res) => {
   try {
     const product_id = req.params.pId;
