@@ -3,6 +3,7 @@ const prodSvc = require("../services/product.service");
 const StoreModel = require("../models/store.model");
 const UserModel = require("../models/user.model");
 const pool = require("../config/mongoose.config");
+const logger = require("../config/logger.config");
 
 class StoreController {
   createStore = async (req, res, next) => {
@@ -16,6 +17,7 @@ class StoreController {
       data.user = userId;
       let store = await storeSvc.storeValidate(data);
       await storeSvc.createScore(store);
+      logger.info(`Store created successfully: ${data.name}`);
       res.json({
         result: store,
         msg: "Store registered successfully.",
@@ -30,7 +32,7 @@ class StoreController {
   addProductToStore = async (req, res, next) => {
     try {
       let data = req.body;
-      console.log("Data", data);
+      // console.log("Data", data);
       if (req.files) {
         data.images = req.files.map((item) => {
           return item.filename;
@@ -39,6 +41,7 @@ class StoreController {
       let id = data.store;
       let validated = await prodSvc.productValidate(data);
       let response = await storeSvc.addProductToStore(id, validated);
+      logger.info(`Product added to store: ${data.name}`);
       res.json({
         result: response,
         msg: "Product created successfully",
@@ -53,9 +56,10 @@ class StoreController {
     try {
       const storeId = req.params.id;
       const updatedData = req.body;
-      console.log("storeId", storeId);
-      console.log("data", updatedData);
+      // console.log("storeId", storeId);
+      // console.log("data", updatedData);
       const store = await storeSvc.updateStore(storeId, updatedData);
+      logger.info(`Store updated: ${store.name}`);
       res.json({
         result: store,
         msg: "Store updated successfully.",
@@ -69,6 +73,7 @@ class StoreController {
     try {
       const storeId = req.params.id;
       const products = await storeSvc.listAllProductsOfStore(storeId);
+      logger.info("Product fetched successfully");
       res.json({
         result: products,
         msg: "Products retrieved successfully.",
@@ -81,6 +86,7 @@ class StoreController {
   getAllStores = async (req, res, next) => {
     try {
       const stores = await storeSvc.getAllStores();
+      logger.info("Stores fetched successfully");
       res.json({
         result: stores,
         msg: "Stores retrieved successfully.",
@@ -113,7 +119,7 @@ class StoreController {
         userLocation[1],
         maxDistance,
       ]);
-
+      logger.info(`Store ${storesResult.rows.length} fetched successfully`);
       res.json({
         result: storesResult.rows,
         msg: "Nearby stores retrieved successfully.",

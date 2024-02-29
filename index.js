@@ -3,6 +3,7 @@ const express = require("express");
 const app = express();
 require("./src/config/mongoose.config");
 const routes = require("./src/routes");
+const logger = require("./src/config/logger.config");
 app.use(express.json());
 app.use(
   express.urlencoded({
@@ -33,5 +34,6 @@ server.listen(3005, "localhost", (err) => {
   } else {
     console.log("Server is listening to port 3005");
     console.log("Press CTRL+C to disconnect server");
+    logger.info("Connected to server on port 3005");
   }
 });

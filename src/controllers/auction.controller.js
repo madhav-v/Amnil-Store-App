@@ -19,6 +19,7 @@ exports.addAuction = async (req, res) => {
     `;
     const values = [product_id, new Date(), new Date(req.body.endDate)];
     const { rows } = await pool.query(query, values);
+    logger.info("Add auction successfully");
     res.json({
       status: "success",
       data: rows[0],
@@ -37,6 +38,7 @@ exports.getAllAuctions = async (req, res) => {
       SELECT * FROM auction;
     `;
     const { rows } = await pool.query(query);
+    logger.info("Auctions loaded successfully");
     res.json({
       status: "success",
       result: rows.length,
@@ -58,6 +60,7 @@ exports.getAuctionById = async (req, res) => {
     `;
     const values = [auctionId];
     const { rows } = await pool.query(query, values);
+    logger.info("Auction fetched successfully");
     res.json({
       status: "success",
       data: rows[0],
@@ -96,6 +99,8 @@ exports.bidAuction = async (req, res) => {
   `;
     const values = [{ user_id, bid_amount }, auctionId];
     const { rows } = await pool.query(query, values);
+
+    logger.info("Updated auction successfully");
     res.json({
       status: "success",
       data: rows[0],
@@ -116,6 +121,7 @@ exports.getBidders = async (req, res) => {
     `;
     const values = [auctionId];
     const { rows } = await pool.query(query, values);
+    logger.info("Bidders fetched successfully");
     res.json({
       status: "success",
       data: rows[0],
@@ -150,7 +156,7 @@ exports.decideAuctionWinner = async (req, res) => {
     `;
     const updateValues = [winner.user_id, winner.bid_amount, auctionId];
     const { rows: updatedRows } = await pool.query(updateQuery, updateValues);
-
+    logger.info("Winner of auction decided successfully");
     res.json({
       status: "success",
       data: updatedRows[0],

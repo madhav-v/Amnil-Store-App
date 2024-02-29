@@ -1,11 +1,14 @@
 const Cart = require("./../models/cart.model");
 const pool = require("../config/mongoose.config");
+const logger = require("../config/logger.config");
+
 exports.getAllCarts = async (req, res) => {
   try {
     const query = `
       SELECT * FROM cart;
     `;
     const { rows } = await pool.query(query);
+    logger.info("Cart loaded successfully");
     res.json({
       status: "success",
       result: rows.length,
@@ -38,6 +41,7 @@ exports.addToCart = async (req, res) => {
       msg: "Added to cart",
       data: rows[0],
     });
+    logger.info("Added to cart successfully");
   } catch (err) {
     res.status(400).json({
       status: "fail",
@@ -58,6 +62,7 @@ exports.getUserCart = async (req, res) => {
       result: rows.length,
       cart: rows,
     });
+    logger.info("Cart loaded successfully");
   } catch (err) {
     res.status(400).json({
       status: "fail",

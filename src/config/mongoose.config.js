@@ -100,7 +100,7 @@ createTablesQueries.forEach(async (query) => {
     const client = await pool.connect();
     await client.query(query);
     client.release();
-    console.log("Table created successfully");
+    // console.log("Table created successfully");
   } catch (error) {
     console.error("Error creating table:", error.stack);
   }

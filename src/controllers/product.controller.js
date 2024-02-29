@@ -1,12 +1,13 @@
 const prodSvc = require("../services/product.service");
 const pool = require("../config/mongoose.config");
+const logger = require("../config/logger.config");
 
 class ProductController {
   createProduct = async (req, res, next) => {
     try {
       const id = req.authUser?.id;
       let data = req.body;
-      console.log(data);
+      // console.log(data);
       // data.sellerId = id;
       if (req.files) {
         data.images = req.files.map((item) => {
@@ -28,6 +29,7 @@ class ProductController {
         validated.store_id,
       ];
       const { rows } = await pool.query(query, values);
+      logger.info(`Product created successfully: ${data.name}`);
 
       res.json({
         result: rows[0],
@@ -42,6 +44,7 @@ class ProductController {
   getAllProducts = async (req, res, next) => {
     try {
       let response = await prodSvc.getAllProducts();
+      logger.info(`Product fetched successfully.}`);
       res.json({
         result: response,
         msg: "All products",
@@ -55,6 +58,7 @@ class ProductController {
   deleteProduct = async (req, res, next) => {
     try {
       let del = await prodSvc.deleteProductById(req.params.id);
+      logger.info(`Product deleted successfully.`);
       res.json({
         result: del,
         msg: "Product deleted successfully",
@@ -74,7 +78,7 @@ class ProductController {
           { detail: { $regex: query, $options: "i" } },
         ],
       });
-
+      logger.info(`Product list for search.`);
       res.json({
         result: listAll,
         status: true,
@@ -97,8 +101,8 @@ class ProductController {
 
       data.images = [...product.images, ...images];
       let validated = await prodSvc.productValidate(data);
-
       let response = await prodSvc.updateProduct(validated, req.params.id);
+      logger.info(`Product updated successfully: ${data.name}`);
       res.json({
         result: response,
         msg: "Product Updated successfully",
@@ -112,7 +116,7 @@ class ProductController {
   getProductById = async (req, res, next) => {
     try {
       let product = await prodSvc.getProductById(req.params.id);
-
+      logger.info(`Product fetched successfully. ${product.name}`);
       res.json({
         result: product,
         msg: "Product fetched successfully",

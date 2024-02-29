@@ -1,6 +1,8 @@
 const Order = require("../models/order.model");
 const Cart = require("../models/cart.model");
 const pool = require("../config/mongoose.config");
+const logger = require("../config/logger.config");
+
 exports.getAllOrders = async (req, res) => {
   try {
     const query = `
@@ -8,7 +10,7 @@ exports.getAllOrders = async (req, res) => {
       FROM orders;
     `;
     const orders = await pool.query(query);
-
+    logger.info("Orders loaded successfully");
     res.json({
       status: "success",
       result: orders.rows.length,
@@ -26,7 +28,6 @@ exports.checkoutOrder = async (req, res) => {
   try {
     const userId = req.params.userId;
 
-    // SQL query to find the user's cart
     const findCartQuery = `
       SELECT * 
       FROM cart
@@ -61,7 +62,7 @@ exports.checkoutOrder = async (req, res) => {
     `;
     const deleteCartValues = [userId];
     await pool.query(deleteCartQuery, deleteCartValues);
-
+    logger.info("Cart deleted");
     res.status(200).json({
       status: "success",
       msg: "Order has been placed",
