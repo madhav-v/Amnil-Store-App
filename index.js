@@ -4,6 +4,9 @@ const app = express();
 require("./src/config/mongoose.config");
 const routes = require("./src/routes");
 const logger = require("./src/config/logger.config");
+const swaggerJsdoc = require("swagger-jsdoc");
+const swaggerUi = require("swagger-ui-express");
+const swaggerOptions = require("./src/config/swagger.config");
 app.use(express.json());
 app.use(
   express.urlencoded({
@@ -11,6 +14,8 @@ app.use(
   })
 );
 app.use("/api/v1", routes);
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 const server = http.createServer(app);
 
 app.use((req, res, next) => {
