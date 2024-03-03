@@ -129,8 +129,6 @@ class StoreController {
       next(exception);
     }
   };
-
-  deleteStore = async (req, res, next) => {};
 }
 
 const storeCtrl = new StoreController();
