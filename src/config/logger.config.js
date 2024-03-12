@@ -2,12 +2,12 @@ const { createLogger, transports, format } = require("winston");
 const fs = require("fs");
 const path = require("path");
 
-const logsDir = "logs";
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir);
-}
+// const logsDir = "logs";
+// if (!fs.existsSync(logsDir)) {
+//   fs.mkdirSync(logsDir);
+// }
 
-const logFilePath = path.join(logsDir, "app.log");
+// const logFilePath = path.join(logsDir, "app.log");
 
 const logger = createLogger({
   transports: [
@@ -22,15 +22,15 @@ const logger = createLogger({
       ),
     }),
     // Log to file
-    new transports.File({
-      filename: logFilePath,
-      format: format.combine(
-        format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
-        format.printf(
-          (info) => `${info.timestamp} ${info.level}: ${info.message}`
-        )
-      ),
-    }),
+    // new transports.File({
+    //   filename: logFilePath,
+    //   format: format.combine(
+    //     format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
+    //     format.printf(
+    //       (info) => `${info.timestamp} ${info.level}: ${info.message}`
+    //     )
+    //   ),
+    // }),
   ],
 });
 
