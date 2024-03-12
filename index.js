@@ -16,6 +16,10 @@ app.use(
 app.use("/api/v1", routes);
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+app.use("/", (req, res) => {
+  res.send("Hello World");
+});
 const server = http.createServer(app);
 
 app.use((req, res, next) => {
