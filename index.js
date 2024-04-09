@@ -18,7 +18,7 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/", (req, res) => {
-  res.send("Hello World");
+  res.send("Hello World Server");
 });
 const server = http.createServer(app);
 
